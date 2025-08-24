@@ -1,12 +1,35 @@
+import { db } from '../db';
+import { accountsTable } from '../db/schema';
 import { type CreateAccountInput, type Account } from '../schema';
+import { eq } from 'drizzle-orm';
 
-export async function createAccount(input: CreateAccountInput): Promise<Account> {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is creating a new account with proper validation.
-    // Should validate account code uniqueness and parent account existence.
-    // Should enforce business rules for special account types (bank, capital, payroll, intercompany).
-    return Promise.resolve({
-        id: 0, // Placeholder ID
+export const createAccount = async (input: CreateAccountInput): Promise<Account> => {
+  try {
+    // Validate account code uniqueness
+    const existingAccount = await db.select()
+      .from(accountsTable)
+      .where(eq(accountsTable.code, input.code))
+      .execute();
+
+    if (existingAccount.length > 0) {
+      throw new Error(`Account code '${input.code}' already exists`);
+    }
+
+    // Validate parent account exists if parent_id is provided
+    if (input.parent_id !== null && input.parent_id !== undefined) {
+      const parentAccount = await db.select()
+        .from(accountsTable)
+        .where(eq(accountsTable.id, input.parent_id))
+        .execute();
+
+      if (parentAccount.length === 0) {
+        throw new Error(`Parent account with ID ${input.parent_id} does not exist`);
+      }
+    }
+
+    // Insert account record
+    const result = await db.insert(accountsTable)
+      .values({
         code: input.code,
         name: input.name,
         account_type: input.account_type,
@@ -16,8 +39,14 @@ export async function createAccount(input: CreateAccountInput): Promise<Account>
         is_payroll_source: input.is_payroll_source,
         is_intercompany: input.is_intercompany,
         parent_id: input.parent_id,
-        is_active: input.is_active,
-        created_at: new Date(),
-        updated_at: new Date()
-    } as Account);
-}
+        is_active: input.is_active
+      })
+      .returning()
+      .execute();
+
+    return result[0];
+  } catch (error) {
+    console.error('Account creation failed:', error);
+    throw error;
+  }
+};

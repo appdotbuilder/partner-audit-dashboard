@@ -1,13 +1,12 @@
+import { db } from '../db';
+import { attachmentsTable } from '../db/schema';
 import { type CreateAttachmentInput, type Attachment } from '../schema';
 
-export async function createAttachment(input: CreateAttachmentInput, userId: number): Promise<Attachment> {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is creating an attachment record for uploaded files.
-    // Should handle file upload to secure storage and generate file paths.
-    // Should validate file types and sizes according to business rules.
-    // Should associate with journals or import batches as needed.
-    return Promise.resolve({
-        id: 0, // Placeholder ID
+export const createAttachment = async (input: CreateAttachmentInput, userId: number): Promise<Attachment> => {
+  try {
+    // Insert attachment record
+    const result = await db.insert(attachmentsTable)
+      .values({
         filename: input.filename,
         original_filename: input.original_filename,
         mime_type: input.mime_type,
@@ -15,8 +14,15 @@ export async function createAttachment(input: CreateAttachmentInput, userId: num
         file_path: input.file_path,
         journal_id: input.journal_id,
         import_batch_id: input.import_batch_id,
-        uploaded_by: userId,
-        created_at: new Date(),
-        updated_at: new Date()
-    } as Attachment);
-}
+        uploaded_by: userId
+      })
+      .returning()
+      .execute();
+
+    // Return the created attachment
+    return result[0];
+  } catch (error) {
+    console.error('Attachment creation failed:', error);
+    throw error;
+  }
+};

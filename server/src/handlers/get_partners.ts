@@ -1,8 +1,18 @@
+import { db } from '../db';
+import { partnersTable } from '../db/schema';
 import { type Partner } from '../schema';
 
-export async function getPartners(): Promise<Partner[]> {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is fetching all partners from the database with their account details.
-    // Should include relations to USD and PKR accounts for complete partner information.
-    return [];
-}
+export const getPartners = async (): Promise<Partner[]> => {
+  try {
+    // Fetch all partners from the database
+    const results = await db.select()
+      .from(partnersTable)
+      .execute();
+
+    // Return partners (no numeric conversions needed for this table)
+    return results;
+  } catch (error) {
+    console.error('Failed to fetch partners:', error);
+    throw error;
+  }
+};
